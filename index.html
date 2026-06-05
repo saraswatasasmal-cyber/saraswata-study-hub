@@ -21,7 +21,6 @@
 
     <h1>Saraswata Study Hub 📚</h1>
     
-    <!-- Filter dropdown by class -->
     <div class="controls">
         <label for="classFilter">Filter by Class: </label>
         <select id="classFilter" onchange="filterMaterials()">
@@ -32,20 +31,18 @@
         </select>
     </div>
 
-    <!-- Container where PDFs will appear -->
     <div class="grid" id="materialsGrid">
         <p style="text-align:center; grid-column: 1/-1;">Loading study materials...</p>
     </div>
 
-    <!-- Firebase Scripts -->
+    <!-- Combined Standalone Execution Script Module -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initializeApp } from "https://gstatic.com";
+        import { getFirestore, collection, getDocs } from "https://gstatic.com";
 
-        // Your exact Firebase configuration from the admin panel image
         const firebaseConfig = {
             apiKey: "AlzaSyBGCw2svZZVMyRew878HjEghJdudO0HrU",
-            authDomain: "saraswata-study-hub.firebaseapp.com",
+            authDomain: "://firebaseapp.com",
             projectId: "saraswata-study-hub",
             storageBucket: "://appspot.com"
         };
@@ -55,38 +52,62 @@
 
         let allMaterials = [];
 
-        // Fetch data from Firebase
         async function loadMaterials() {
-    try {
-        const grid = document.getElementById('materialsGrid');
-        
-        // Connect directly to the database collection layer
-        const querySnapshot = await getDocs(collection(db, "pdfs"));
-        allMaterials = [];
-        
-        querySnapshot.forEach((doc) => {
-            allMaterials.push(doc.data());
-        });
+            try {
+                const grid = document.getElementById('materialsGrid');
+                const querySnapshot = await getDocs(collection(db, "pdfs"));
+                allMaterials = [];
+                
+                querySnapshot.forEach((doc) => {
+                    allMaterials.push(doc.data());
+                });
 
-        // Clear your loading status indicator text
-        grid.innerHTML = "";
+                grid.innerHTML = "";
 
-        // Trigger an interface notice if the collection is active but blank
-        if (allMaterials.length === 0) {
-            grid.innerHTML = `
-                <div style="grid-column: 1/-1; text-align: center; color: #ff9900; background: #fff3cd; padding: 20px; border-radius: 5px;">
-                    ⚠️ Connected to Firebase successfully, but your "pdfs" database collection contains 0 items! Try uploading a new file from your admin panel.
-                </div>`;
-            return;
+                if (allMaterials.length === 0) {
+                    grid.innerHTML = `
+                        <div style="grid-column:1/-1; text-align:center; color:#ff9900; background:#fff3cd; padding:20px; border-radius:5px;">
+                            ⚠️ Connected to Firebase successfully, but your collection is empty! Try uploading a new file from your admin panel.
+                        </div>`;
+                    return;
+                }
+
+                displayMaterials(allMaterials);
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('materialsGrid').innerHTML = `
+                    <div style="grid-column:1/-1; text-align:center; color:#721c24; background:#f8d7da; padding:20px; border-radius:5px;">
+                        ❌ Database Blocked: Make sure your Firestore rules are set to public.
+                    </div>`;
+            }
         }
 
-        // Send dataset array downward into your render engine
-        displayMaterials(allMaterials);
-    } catch (error) {
-        console.error("Error reading database collection logs:", error);
-        document.getElementById('materialsGrid').innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; color: #721c24; background: #f8d7da; padding: 20px; border-radius: 5px;">
-                ❌ Connection Error: ${error.message}
-            </div>`;
-    }
-}
+        window.displayMaterials = function(materials) {
+            const grid = document.getElementById('materialsGrid');
+            grid.innerHTML = "";
+            materials.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <h3>${item.name || 'Untitled Document'}</h3>
+                    <p>Class: ${item.class || 'N/A'}</p>
+                    <a href="${item.url}" target="_blank" class="download-btn">Download PDF</a>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.filterMaterials = function() {
+            const selectedClass = document.getElementById('classFilter').value;
+            if(selectedClass === "all") {
+                displayMaterials(allMaterials);
+            } else {
+                const filtered = allMaterials.filter(item => String(item.class) === selectedClass);
+                displayMaterials(filtered);
+            }
+        }
+
+        loadMaterials();
+    </script>
+</body>
+</html>
