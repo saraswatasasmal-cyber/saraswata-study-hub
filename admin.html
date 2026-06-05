@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Upload</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>📚 Saraswata Study Hub - Admin</h1>
+</header>
+
+<div class="container">
+  <input type="password" id="adminPass" placeholder="Admin Password">
+  <br><br>
+
+  <input type="file" id="pdfFile" accept=".pdf">
+  <br><br>
+
+  <button onclick="uploadPDF()">Upload PDF</button>
+
+  <p id="status"></p>
+</div>
+
+<script>
+const ADMIN_PASSWORD = "saraswata123"; // change this
+
+async function uploadPDF() {
+
+    const pass =
+    document.getElementById("adminPass").value;
+
+    if(pass !== ADMIN_PASSWORD){
+        alert("Wrong password");
+        return;
+    }
+
+    const file =
+    document.getElementById("pdfFile").files[0];
+
+    if(!file){
+        alert("Choose PDF");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "studypdf");
+
+    document.getElementById("status")
+    .innerText = "Uploading...";
+
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/dfyskwwc8/auto/upload",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    const data = await response.json();
+
+    let pdfs =
+    JSON.parse(localStorage.getItem("pdfs")) || [];
+
+    pdfs.push({
+        name:file.name,
+        url:data.secure_url
+    });
+
+    localStorage.setItem(
+      "pdfs",
+      JSON.stringify(pdfs)
+    );
+
+    document.getElementById("status")
+    .innerText = "PDF Uploaded!";
+}
+</script>
+
+</body>
+</html>
