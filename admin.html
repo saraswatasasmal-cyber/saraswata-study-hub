@@ -1,82 +1,212 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Upload</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Upload Panel</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .upload-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333333;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: #0044ff;
+            outline: none;
+        }
+
+        .file-input-container {
+            border: 1px solid #cccccc;
+            padding: 12px;
+            border-radius: 4px;
+            background-color: #fafafa;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            margin-bottom: 25px;
+        }
+
+        .file-input-container input[type="file"] {
+            font-size: 14px;
+            color: #555555;
+        }
+
+        .upload-btn {
+            width: 100%;
+            background-color: #0044ff;
+            color: #ffffff;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .upload-btn:hover {
+            background-color: #0033cc;
+        }
+        
+        .upload-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
 
-<header>
-  <h1>📚 Saraswata Study Hub - Admin</h1>
-</header>
+    <div class="upload-container">
+        <div class="header-title">
+            <span>📚</span> Admin Upload
+        </div>
 
-<div class="container">
-  <input type="password" id="adminPass" placeholder="Admin Password">
-  <br><br>
+        <!-- Form Fields -->
+        <div class="input-group">
+            <input type="text" id="pdfName" class="input-field" placeholder="PDF Name" required>
+        </div>
 
-  <input type="file" id="pdfFile" accept=".pdf">
-  <br><br>
+        <div class="input-group">
+            <input type="text" id="class" class="input-field" placeholder="Class" required>
+        </div>
 
-  <button onclick="uploadPDF()">Upload PDF</button>
+        <div class="file-input-container">
+            <input type="file" id="pdfFile" accept="application/pdf">
+        </div>
 
-  <p id="status"></p>
-</div>
+        <button type="button" id="uploadBtn" class="upload-btn" onclick="uploadPDF()">Upload</button>
+    </div>
 
-<script>
-const ADMIN_PASSWORD = "saraswata123"; // change this
+    <!-- Firebase Integration Engine Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-async function uploadPDF() {
+        // Your Exact Database Configuration Credentials
+        const firebaseConfig = {
+            apiKey: "AlzaSyBGCw2svZZVMyRew878HjEghJdudO0HrU",
+            authDomain: "saraswata-study-hub.firebaseapp.com",
+            projectId: "saraswata-study-hub",
+            storageBucket: "://appspot.com"
+        };
 
-    const pass =
-    document.getElementById("adminPass").value;
+        // Initialize Firebase instances
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-    if(pass !== ADMIN_PASSWORD){
-        alert("Wrong password");
-        return;
-    }
+        // Constants for Cloudinary Setup
+        const CLOUD_NAME = "dfyskwwc8";
+        const UPLOAD_PRESET = "studypdf";
 
-    const file =
-    document.getElementById("pdfFile").files[0];
+        // Main Execution Upload Function
+        window.uploadPDF = async function() {
+            const fileInput = document.getElementById("pdfFile");
+            const nameField = document.getElementById("pdfName").value.trim();
+            const classField = document.getElementById("class").value.trim();
+            const uploadBtn = document.getElementById("uploadBtn");
 
-    if(!file){
-        alert("Choose PDF");
-        return;
-    }
+            // Simple Field Validation Checked
+            if (!fileInput.files.length || !nameField || !classField) {
+                alert("Fill all fields + select a PDF file!");
+                return;
+            }
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "studypdf");
+            const file = fileInput.files[0];
+            
+            // UI state management during network requests
+            uploadBtn.disabled = true;
+            uploadBtn.innerText = "Uploading... Please Wait";
 
-    document.getElementById("status")
-    .innerText = "Uploading...";
+            try {
+                // Step 1: Pack file contents for multipart HTTP request
+                const form = new FormData();
+                form.append("file", file);
+                form.append("upload_preset", UPLOAD_PRESET);
 
-    const response = await fetch(
-      "https://api.cloudinary.com/v1_1/dfyskwwc8/auto/upload",
-      {
-        method: "POST",
-        body: formData
-      }
-    );
+                // Step 2: POST upload route to Cloudinary servers
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {
+                    method: "POST",
+                    body: form
+                });
 
-    const data = await response.json();
+                const data = await res.json();
 
-    let pdfs =
-    JSON.parse(localStorage.getItem("pdfs")) || [];
+                // Validation trap if image server breaks down
+                if (!data.secure_url) {
+                    alert("Upload failed at media server layer.");
+                    resetButton();
+                    return;
+                }
 
-    pdfs.push({
-        name:file.name,
-        url:data.secure_url
-    });
+                // Step 3: Write structured object documents down into Firebase Firestore database
+                await addDoc(collection(db, "pdfs"), {
+                    name: nameField,
+                    class: classField,
+                    url: data.secure_url,
+                    time: Date.now()
+                });
 
-    localStorage.setItem(
-      "pdfs",
-      JSON.stringify(pdfs)
-    );
+                alert("Upload Successful ✔");
+                
+                // Clear UI elements for next entry session
+                document.getElementById("pdfName").value = "";
+                document.getElementById("class").value = "";
+                fileInput.value = "";
 
-    document.getElementById("status")
-    .innerText = "PDF Uploaded!";
-}
-</script>
+            } catch (err) {
+                console.error(err);
+                alert("Error uploading. Check developer console log details.");
+            } finally {
+                resetButton();
+            }
 
+            function resetButton() {
+                uploadBtn.disabled = false;
+                uploadBtn.innerText = "Upload";
+            }
+        };
+    </script>
 </body>
 </html>
